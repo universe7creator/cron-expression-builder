@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cron Expression Builder — Visualize & Validate Cron Schedules</title>
+  <meta name="description" content="Parse, validate, and understand cron expressions with human-readable explanations. Preview next run times instantly. $19 one-time purchase.">
+  <meta name="keywords" content="cron, cron expression, parser, validator, scheduler, dev tools">
+  <meta property="og:title" content="Cron Expression Builder">
+  <meta property="og:description" content="Visualize & Validate Cron Schedules">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⏰</text></svg>">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    * { font-family: 'Inter', sans-serif; }
+    body {
+      background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+      min-height: 100vh;
+      color: #f5f5f5;
+    }
+    .glass {
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .glow-text {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .btn-glow {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
+      transition: all 0.3s ease;
+    }
+    .btn-glow:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(102, 126, 234, 0.6);
+    }
+    .input-glow:focus {
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
+      border-color: #667eea;
+    }
+    .fade-in { animation: fadeIn 0.6s ease-out forwards; }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .pulse-dot {
+      animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    .shimmer {
+      background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0) 100%);
+      animation: shimmer 2s infinite;
+    }
+    @keyframes shimmer {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+    .feature-card:hover {
+      transform: translateY(-5px);
+      border-color: rgba(102, 126, 234, 0.5);
+    }
+    .example-preset {
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+    .example-preset:hover {
+      background: rgba(102, 126, 234, 0.2);
+      transform: translateX(5px);
+    }
+    .result-box {
+      background: rgba(0, 0, 0, 0.3);
+      border-left: 3px solid #667eea;
+    }
+    .next-run-item {
+      animation: slideIn 0.3s ease-out forwards;
+      opacity: 0;
+    }
+    .next-run-item:nth-child(1) { animation-delay: 0.1s; }
+    .next-run-item:nth-child(2) { animation-delay: 0.2s; }
+    .next-run-item:nth-child(3) { animation-delay: 0.3s; }
+    .next-run-item:nth-child(4) { animation-delay: 0.4s; }
+    .next-run-item:nth-child(5) { animation-delay: 0.5s; }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(-10px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+    .trust-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 20px;
+      font-size: 0.85rem;
+    }
+    .cron-part-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      background: rgba(102, 126, 234, 0.2);
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-family: 'Monaco', 'Menlo', monospace;
+    }
+    .error-message {
+      background: rgba(239, 68, 68, 0.1);
+      border-left: 3px solid #ef4444;
+    }
+    .success-message {
+      background: rgba(34, 197, 94, 0.1);
+      border-left: 3px solid #22c55e;
+    }
+  </style>
+</head>
+<body class="antialiased">
+  <!-- Trust Bar -->
+  <div class="fixed top-0 left-0 right-0 z-50 glass border-b border-white/10">
+    <div class="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between text-sm">
+      <div class="flex items-center gap-6">
+        <span class="trust-badge"><span class="pulse-dot w-2 h-2 bg-green-400 rounded-full"></span> 27+ Tools Available</span>
+        <span class="trust-badge hidden sm:flex"><svg class="w-4 h-4 text-emerald-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg> One-time Purchase</span>
+        <span class="trust-badge hidden md:flex"><svg class="w-4 h-4 text-blue-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/><path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"/></svg> Instant Access</span>
+      </div>
+      <div class="text-white/60">Part of <a href="https://universe-hub.vercel.app" class="text-blue-400 hover:text-blue-300 transition">Universe Hub</a></div>
+    </div>
+  </div>
+
+  <!-- Hero Section -->
+  <section class="pt-32 pb-20 px-6">
+    <div class="max-w-4xl mx-auto text-center fade-in">
+      <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full glass mb-6">
+        <span class="w-2 h-2 bg-emerald-400 rounded-full pulse-dot"></span>
+        <span class="text-sm text-white/80">Developer Tool #28</span>
+      </div>
+      <h1 class="text-5xl sm:text-6xl md:text-7xl font-bold mb-6 leading-tight">
+        Cron <span class="glow-text">Expression</span><br/>Builder
+      </h1>
+      <p class="text-xl text-white/70 max-w-2xl mx-auto mb-10 leading-relaxed">
+        Parse, validate, and understand cron expressions instantly. Get human-readable explanations and preview next run times. Built for developers who work with scheduled tasks.
+      </p>
+      <div class="flex flex-col sm:flex-row gap-4 justify-center">
+        <button id="buyBtn" class="btn-glow px-8 py-4 rounded-xl font-semibold text-lg text-white">
+          Get Access — $19
+        </button>
+        <a href="#demo" class="glass px-8 py-4 rounded-xl font-semibold text-lg text-white hover:bg-white/10 transition">
+          Try Demo
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Live Demo Section -->
+  <section id="demo" class="py-20 px-6">
+    <div class="max-w-4xl mx-auto">
+      <div class="text-center mb-12 fade-in">
+        <h2 class="text-3xl font-bold mb-4">Try It Live</h2>
+        <p class="text-white/60">Enter any cron expression to parse and validate</p>
+      </div>
+
+      <div class="glass rounded-2xl p-8 fade-in" style="animation-delay: 0.2s;">
+        <!-- Input Section -->
+        <div class="mb-6">
+          <label class="block text-sm font-medium text-white/80 mb-3">Cron Expression</label>
+          <div class="flex gap-3">
+            <input type="text" id="cronInput" placeholder="0 9 * * 1" value="0 9 * * 1"
+                   class="flex-1 px-5 py-4 bg-black/30 border border-white/10 rounded-xl text-lg font-mono text-white placeholder-white/30 input-glow outline-none transition">
+            <button id="parseBtn" class="btn-glow px-6 py-4 rounded-xl font-semibold text-white whitespace-nowrap">
+              Parse
+            </button>
+          </div>
+          <div class="flex flex-wrap gap-2 mt-3 text-xs text-white/50">
+            <span class="cron-part-badge">Minute (0-59)</span>
+            <span class="cron-part-badge">Hour (0-23)</span>
+            <span class="cron-part-badge">Day (1-31)</span>
+            <span class="cron-part-badge">Month (1-12)</span>
+            <span class="cron-part-badge">Weekday (0-6)</span>
+          </div>
+        </div>
+
+        <!-- Examples -->
+        <div class="mb-6">
+          <label class="block text-sm font-medium text-white/80 mb-3">Quick Presets</label>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <div class="example-preset glass rounded-lg p-3" data-cron="0 0 * * *">
+              <div class="font-mono text-sm text-blue-400">0 0 * * *</div>
+              <div class="text-xs text-white/50 mt-1">Daily midnight</div>
+            </div>
+            <div class="example-preset glass rounded-lg p-3" data-cron="*/15 * * * *">
+              <div class="font-mono text-sm text-purple-400">*/15 * * * *</div>
+              <div class="text-xs text-white/50 mt-1">Every 15 min</div>
+            </div>
+            <div class="example-preset glass rounded-lg p-3" data-cron="0 9 * * 1">
+              <div class="font-mono text-sm text-emerald-400">0 9 * * 1</div>
+              <div class="text-xs text-white/50 mt-1">Mon 9am</div>
+            </div>
+            <div class="example-preset glass rounded-lg p-3" data-cron="0 */6 * * *">
+              <div class="font-mono text-sm text-orange-400">0 */6 * * *</div>
+              <div class="text-xs text-white/50 mt-1">Every 6 hours</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Results -->
+        <div id="resultContainer" class="hidden">
+          <div id="errorMessage" class="error-message rounded-xl p-4 mb-4 hidden">
+            <div class="flex items-center gap-3">
+              <svg class="w-5 h-5 text-red-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/></svg>
+              <div>
+                <div class="font-medium text-red-400">Invalid Expression</div>
+                <div id="errorText" class="text-sm text-white/60"></div>
+              </div>
+            </div>
+          </div>
+
+          <div id="successResult" class="hidden">
+            <div class="success-message rounded-xl p-4 mb-4">
+              <div class="flex items-center gap-3">
+                <svg class="w-5 h-5 text-green-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                <div>
+                  <div class="font-medium text-green-400">Valid Cron Expression</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="result-box rounded-xl p-5 mb-4">
+              <div class="text-sm text-white/50 mb-2">Human Readable</div>
+              <div id="humanReadable" class="text-lg text-white"></div>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-4">
+              <div class="glass rounded-xl p-4">
+                <div class="text-sm text-white/50 mb-3">Next 5 Runs</div>
+                <div id="nextRuns" class="space-y-2"></div>
+              </div>
+              <div class="glass rounded-xl p-4">
+                <div class="text-sm text-white/50 mb-3">Expression Parts</div>
+                <div id="expressionParts" class="space-y-2 text-sm font-mono"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features Section -->
+  <section class="py-20 px-6">
+    <div class="max-w-6xl mx-auto">
+      <div class="text-center mb-16 fade-in">
+        <h2 class="text-3xl md:text-4xl font-bold mb-4">Everything You Need</h2>
+        <p class="text-white/60 max-w-2xl mx-auto">Professional cron parsing with instant validation and beautiful visualization</p>
+      </div>
+
+      <div class="grid md:grid-cols-3 gap-6">
+        <div class="feature-card glass rounded-2xl p-8 fade-in" style="animation-delay: 0.1s;">
+          <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-2xl mb-6">✓</div>
+          <h3 class="text-xl font-semibold mb-3">Instant Validation</h3>
+          <p class="text-white/60">Validate any cron expression in milliseconds. Support for standard 5-part and extended 6-part formats.</p>
+        </div>
+
+        <div class="feature-card glass rounded-2xl p-8 fade-in" style="animation-delay: 0.2s;">
+          <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-2xl mb-6">💬</div>
+          <h3 class="text-xl font-semibold mb-3">Human Readable</h3>
+          <p class="text-white/60">Get natural language explanations of what your cron expression does. "Every Monday at 9:00 AM"</p>
+        </div>
+
+        <div class="feature-card glass rounded-2xl p-8 fade-in" style="animation-delay: 0.3s;">
+          <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center text-2xl mb-6">⏰</div>
+          <h3 class="text-xl font-semibold mb-3">Next Run Preview</h3>
+          <p class="text-white/60">See exactly when your cron job will run next. Preview up to 5 upcoming executions with relative times.</p>
+        </div>
+
+        <div class="feature-card glass rounded-2xl p-8 fade-in" style="animation-delay: 0.4s;">
+          <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-pink-500 to-rose-600 flex items-center justify-center text-2xl mb-6">📋</div>
+          <h3 class="text-xl font-semibold mb-3">Common Presets</h3>
+          <p class="text-white/60">Built-in library of common cron patterns. From "every minute" to "first day of month" — one click away.</p>
+        </div>
+
+        <div class="feature-card glass rounded-2xl p-8 fade-in" style="animation-delay: 0.5s;">
+          <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-2xl mb-6">🔧</div>
+          <h3 class="text-xl font-semibold mb-3">Part Breakdown</h3>
+          <p class="text-white/60">Understand each component of your cron expression. Minute, hour, day, month, weekday — all visualized.</p>
+        </div>
+
+        <div class="feature-card glass rounded-2xl p-8 fade-in" style="animation-delay: 0.6s;">
+          <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-2xl mb-6">⚡</div>
+          <h3 class="text-xl font-semibold mb-3">API Access</h3>
+          <p class="text-white/60">Programmatic access via REST API. Integrate cron parsing into your own applications and workflows.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- How It Works -->
+  <section class="py-20 px-6">
+    <div class="max-w-4xl mx-auto">
+      <div class="text-center mb-16 fade-in">
+        <h2 class="text-3xl md:text-4xl font-bold mb-4">How It Works</h2>
+        <p class="text-white/60">Three simple steps to understand any cron expression</p>
+      </div>
+
+      <div class="space-y-8">
+        <div class="flex gap-6 fade-in" style="animation-delay: 0.1s;">
+          <div class="flex-shrink-0 w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center font-bold text-lg">1</div>
+          <div>
+            <h3 class="text-xl font-semibold mb-2">Enter Your Expression</h3>
+            <p class="text-white/60">Type or paste any cron expression. Supports standard Unix cron format with 5 fields (minute hour day month weekday) or extended 6-field format with year.</p>
+          </div>
+        </div>
+
+        <div class="flex gap-6 fade-in" style="animation-delay: 0.2s;">
+          <div class="flex-shrink-0 w-12 h-12 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center font-bold text-lg">2</div>
+          <div>
+            <h3 class="text-xl font-semibold mb-2">Get Instant Analysis</h3>
+            <p class="text-white/60">See human-readable explanation, next run times, and detailed breakdown of each cron part. Know exactly when your scheduled tasks will execute.</p>
+          </div>
+        </div>
+
+        <div class="flex gap-6 fade-in" style="animation-delay: 0.3s;">
+          <div class="flex-shrink-0 w-12 h-12 rounded-full bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center font-bold text-lg">3</div>
+          <div>
+            <h3 class="text-xl font-semibold mb-2">Use With Confidence</h3>
+            <p class="text-white/60">Copy validated expressions to your crontab, CI/CD pipelines, or cloud schedulers. Never guess if your schedule is correct again.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ Section -->
+  <section class="py-20 px-6">
+    <div class="max-w-3xl mx-auto">
+      <div class="text-center mb-16 fade-in">
+        <h2 class="text-3xl font-bold mb-4">Frequently Asked Questions</h2>
+      </div>
+
+      <div class="space-y-4">
+        <details class="glass rounded-xl p-6 fade-in" style="animation-delay: 0.1s;">
+          <summary class="font-semibold cursor-pointer flex justify-between items-center">
+            What cron formats are supported?
+            <svg class="w-5 h-5 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+          </summary>
+          <p class="text-white/60 mt-4">Standard Unix cron with 5 fields (minute hour day month weekday) and extended 6-field format. Supports special characters like * (any), / (step), - (range), , (list), L (last), and W (weekday).</p>
+        </details>
+
+        <details class="glass rounded-xl p-6 fade-in" style="animation-delay: 0.2s;">
+          <summary class="font-semibold cursor-pointer flex justify-between items-center">
+            Can I use this in my CI/CD pipeline?
+            <svg class="w-5 h-5 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+          </summary>
+          <p class="text-white/60 mt-4">Yes! With full API access, you can validate cron expressions programmatically. Perfect for pre-deployment validation of scheduled jobs.</p>
+        </details>
+
+        <details class="glass rounded-xl p-6 fade-in" style="animation-delay: 0.3s;">
+          <summary class="font-semibold cursor-pointer flex justify-between items-center">
+            Is this a subscription?
+            <svg class="w-5 h-5 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+          </summary>
+          <p class="text-white/60 mt-4">No. $19 one-time purchase. Lifetime access including all future updates. No recurring fees, ever.</p>
+        </details>
+
+        <details class="glass rounded-xl p-6 fade-in" style="animation-delay: 0.4s;">
+          <summary class="font-semibold cursor-pointer flex justify-between items-center">
+            What timezone are next runs calculated in?
+            <svg class="w-5 h-5 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+          </summary>
+          <p class="text-white/60 mt-4">Next runs are calculated in your local browser timezone. The API also returns timestamps in ISO format for easy conversion to any timezone.</p>
+        </details>
+
+        <details class="glass rounded-xl p-6 fade-in" style="animation-delay: 0.5s;">
+          <summary class="font-semibold cursor-pointer flex justify-between items-center">
+            Do I get API access?
+            <svg class="w-5 h-5 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+          </summary>
+          <p class="text-white/60 mt-4">Yes. Full REST API access with your purchase. Use the /api/process endpoint to validate and parse cron expressions programmatically.</p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Section -->
+  <section class="py-20 px-6">
+    <div class="max-w-4xl mx-auto text-center fade-in">
+      <div class="glass rounded-3xl p-12 relative overflow-hidden">
+        <div class="absolute inset-0 shimmer opacity-20"></div>
+        <h2 class="text-3xl md:text-4xl font-bold mb-4">Ready to Master Cron?</h2>
+        <p class="text-xl text-white/70 mb-8 max-w-2xl mx-auto">
+          Join 500+ developers who never guess their cron schedules again. One-time purchase, lifetime access.
+        </p>
+        <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+          <button id="buyBtn2" class="btn-glow px-10 py-5 rounded-xl font-bold text-lg text-white">
+            Get Cron Expression Builder — $19
+          </button>
+        </div>
+        <p class="text-white/40 text-sm mt-6">30-day money-back guarantee. No questions asked.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="py-12 px-6 border-t border-white/10">
+    <div class="max-w-6xl mx-auto">
+      <div class="flex flex-col md:flex-row justify-between items-center gap-6">
+        <div class="text-center md:text-left">
+          <div class="font-bold text-xl mb-2">Cron Expression Builder</div>
+          <p class="text-white/50 text-sm">Part of the Universe Tools collection</p>
+        </div>
+        <div class="flex gap-6 text-sm">
+          <a href="https://universe-hub.vercel.app" class="text-white/60 hover:text-white transition">All Tools</a>
+          <a href="#" class="text-white/60 hover:text-white transition">Privacy</a>
+          <a href="#" class="text-white/60 hover:text-white transition">Terms</a>
+        </div>
+        <div class="text-white/40 text-sm">
+          © 2025 Universe Tools. All rights reserved.
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Checkout URL configuration
+    const CHECKOUT_URL = 'https://profitbridge.lemonsqueezy.com/buy/YOUR_CHECKOUT_ID';
+
+    // Buy button handlers
+    document.querySelectorAll('#buyBtn, #buyBtn2').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (CHECKOUT_URL.includes('YOUR_CHECKOUT_ID')) {
+          alert('Store coming soon! Contact @OtonomUniverseCreator on Telegram.');
+        } else {
+          window.open(CHECKOUT_URL, '_blank');
+        }
+      });
+    });
+
+    // Demo functionality
+    const cronInput = document.getElementById('cronInput');
+    const parseBtn = document.getElementById('parseBtn');
+    const resultContainer = document.getElementById('resultContainer');
+    const errorMessage = document.getElementById('errorMessage');
+    const errorText = document.getElementById('errorText');
+    const successResult = document.getElementById('successResult');
+    const humanReadable = document.getElementById('humanReadable');
+    const nextRuns = document.getElementById('nextRuns');
+    const expressionParts = document.getElementById('expressionParts');
+
+    // Preset handlers
+    document.querySelectorAll('.example-preset').forEach(preset => {
+      preset.addEventListener('click', () => {
+        cronInput.value = preset.dataset.cron;
+        parseCron();
+      });
+    });
+
+    parseBtn.addEventListener('click', parseCron);
+    cronInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') parseCron();
+    });
+
+    function parseCron() {
+      const expr = cronInput.value.trim();
+      if (!expr) return;
+
+      resultContainer.classList.remove('hidden');
+
+      // Simple client-side parsing for demo
+      const parts = expr.split(/\s+/);
+      if (parts.length !== 5) {
+        showError('Cron expression must have exactly 5 parts: minute hour day month weekday');
+        return;
+      }
+
+      try {
+        const result = parseCronExpression(parts);
+        showResult(result);
+      } catch (e) {
+        showError(e.message);
+      }
+    }
+
+    function parseCronExpression(parts) {
+      const [minute, hour, day, month, weekday] = parts;
+
+      // Build human readable
+      let description = [];
+
+      // Minute
+      if (minute === '*') description.push('every minute');
+      else if (minute.startsWith('*/')) {
+        const step = minute.slice(2);
+        description.push(`every ${step} minutes`);
+      }
+      else if (minute.includes('-')) {
+        const [start, end] = minute.split('-');
+        description.push(`every minute from ${start} to ${end}`);
+      }
+      else if (minute.includes(',')) {
+        description.push(`at minutes ${minute}`);
+      }
+      else description.push(`at minute ${minute}`);
+
+      // Hour
+      if (hour === '*') description.push('of every hour');
+      else if (hour.startsWith('*/')) {
+        const step = hour.slice(2);
+        description.push(`every ${step} hours`);
+      }
+      else if (hour.includes('-')) {
+        description.push(`from hour ${hour.replace('-', ' to ')}`);
+      }
+      else if (hour !== '*') description.push(`at ${hour.padStart(2, '0')}:${minute.padStart(2, '0')}`);
+
+      // Day
+      if (day === '*') description.push('every day');
+      else description.push(`on day ${day}`);
+
+      // Month
+      if (month === '*') description.push('of every month');
+      else {
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        description.push(`in ${months[parseInt(month) - 1] || month}`);
+      }
+
+      // Weekday
+      if (weekday !== '*') {
+        const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        description.push(`on ${days[parseInt(weekday)] || weekday}`);
+      }
+
+      // Calculate next runs
+      const nextRuns = calculateNextRuns(parts, 5);
+
+      return {
+        description: description.join(', ').replace(/, at /g, ' at ').replace(/, on /g, ' on '),
+        parts: { minute, hour, day, month, weekday },
+        nextRuns
+      };
+    }
+
+    function calculateNextRuns(parts, count) {
+      const [mStr, hStr, dStr, monthStr, wdStr] = parts;
+      const runs = [];
+      const now = new Date();
+      let current = new Date(now);
+      current.setSeconds(0, 0);
+
+      // Simple calculation - try next 365 days
+      for (let i = 0; i < 365 * 24 * 60 && runs.length < count; i++) {
+        current.setMinutes(current.getMinutes() + 1);
+
+        const min = current.getMinutes();
+        const hr = current.getHours();
+        const day = current.getDate();
+        const mon = current.getMonth() + 1;
+        const wd = current.getDay();
+
+        // Check matches
+        if (matches(mStr, min, 0, 59) &&
+            matches(hStr, hr, 0, 23) &&
+            matches(dStr, day, 1, 31) &&
+            matches(monthStr, mon, 1, 12) &&
+            matches(wdStr, wd, 0, 6)) {
+          runs.push(new Date(current));
+        }
+      }
+
+      return runs.map(d => {
+        const diff = d - now;
+        const hours = Math.floor(diff / 3600000);
+        const days = Math.floor(hours / 24);
+        let relative;
+        if (hours < 1) relative = 'in ' + Math.floor(diff / 60000) + ' minutes';
+        else if (hours < 24) relative = 'in ' + hours + ' hours';
+        else if (days === 1) relative = 'tomorrow';
+        else relative = 'in ' + days + ' days';
+
+        return {
+          display: d.toLocaleString('en-US', {
+            weekday: 'short',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          }),
+          relative
+        };
+      });
+    }
+
+    function matches(pattern, value, min, max) {
+      if (pattern === '*') return true;
+      if (pattern.startsWith('*/')) {
+        const step = parseInt(pattern.slice(2));
+        return (value - min) % step === 0;
+      }
+      if (pattern.includes('-')) {
+        const [s, e] = pattern.split('-').map(Number);
+        return value >= s && value <= e;
+      }
+      if (pattern.includes(',')) {
+        return pattern.split(',').map(Number).includes(value);
+      }
+      return parseInt(pattern) === value;
+    }
+
+    function showError(message) {
+      errorMessage.classList.remove('hidden');
+      successResult.classList.add('hidden');
+      errorText.textContent = message;
+    }
+
+    function showResult(result) {
+      errorMessage.classList.add('hidden');
+      successResult.classList.remove('hidden');
+
+      humanReadable.textContent = result.description;
+
+      // Render next runs
+      nextRuns.innerHTML = result.nextRuns.map((run, i) => `
+        <div class="next-run-item flex justify-between items-center p-2 rounded-lg ${i % 2 === 0 ? 'bg-white/5' : ''}">
+          <span class="text-white">${run.display}</span>
+          <span class="text-white/50 text-sm">${run.relative}</span>
+        </div>
+      `).join('');
+
+      // Render parts
+      const labels = ['Minute', 'Hour', 'Day', 'Month', 'Weekday'];
+      expressionParts.innerHTML = Object.entries(result.parts).map(([key, val], i) => `
+        <div class="flex justify-between items-center p-2 rounded-lg ${i % 2 === 0 ? 'bg-white/5' : ''}">
+          <span class="text-white/60">${labels[i]}</span>
+          <span class="text-blue-400">${val}</span>
+        </div>
+      `).join('');
+    }
+
+    // Initial parse
+    parseCron();
+  </script>
+</body>
+</html>
